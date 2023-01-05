@@ -1,0 +1,58 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: Fail if SIGNUP_URL is not found as an environment variable
+    fail:
+      msg: This playbook requires SIGNUP_URL to be set.
+    when: SIGNUP_URL is undefined
+
+  - name: Read installed packages
+    package_facts:
+      manager: auto
+
+  - name: Download Nanitor agent (Debian/Ubuntu)
+    get_url:
+      url: https://nanitor.io/agents/nanitor-agent-latest_amd64.deb
+      dest: /tmp/nanitor-agent.deb
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'Debian')"
+
+  - name: Download Nanitor agent (RedHat/Centos)
+    get_url:
+      url: https://nanitor.io/agents/nanitor-agent-latest.x86_64.rpm
+      dest: /tmp/nanitor-agent.rpm
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'RedHat')"
+
+  - name: Install package (Debian/Ubuntu)
+    apt:
+      deb: /tmp/nanitor-agent.deb
+      state: present
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'Debian')"
+
+  - name: Install package (RedHat/Centos)
+    yum:
+      name: /tmp/nanitor-agent.rpm
+      state: present
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'RedHat')"
+
+  - name: Connect the agent to Nanitor server
+    command: "/usr/lib/nanitor-agent/bin/nanitor-agent-bin signup --key {{ SIGNUP_URL }}"
+    when: "('nanitor-agent' not in ansible_facts.packages) and (SIGNUP_URL is defined)"
+
+  - name: Remove package file (Debian/Ubuntu)
+    file:
+      path: /tmp/nanitor-agent.deb
+      state: absent
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'Debian')"
+
+  - name: Remove package file (RedHat/Centos)
+    file:
+      path: /tmp/nanitor-agent.rpm
+      state: absent
+    when: "('nanitor-agent' not in ansible_facts.packages) and (ansible_facts['os_family'] == 'RedHat')"
+
+  - name: Start Nanitor agent service
+    service:
+      name: nanitor-agent
+      state: started
+    when: "('nanitor-agent' not in ansible_facts.packages)"
