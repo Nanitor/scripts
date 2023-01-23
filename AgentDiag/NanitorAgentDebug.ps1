@@ -79,6 +79,9 @@ foreach ($line in $lines)
 Write-Output "Test Checkin"
 Write-Output "--------- Test Checkin -------"  *>> $OutFileName
 .\nanitor-agent-bin.exe test_checkin_system_info  *>> $OutFileName
+Write-Output "Upgrade Maintenance"
+Write-Output "--------- Upgrade Maintenance -------"  *>> $OutFileName
+.\nanitor-agent-bin.exe run_upgrade_maintenance *>> $OutFileName
 Write-Output "System Info"
 Write-Output "--------- System Info -------"  *>> $OutFileName
 .\nanitor-agent-bin.exe test_system_info *>> $OutFileName

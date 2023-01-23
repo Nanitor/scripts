@@ -54,6 +54,9 @@ echo "Testing connection to $ServerURL"
 ConnTest=$(curl $ServerURL 2>&1)
 echo "--------- Test Connection to $ServerURL -------" > $LogFileName
 echo ${ConnTest:0:500} >> $LogFileName
+echo "Upgrade Maintenance"
+echo "--------- Upgrade Maintenance -------" >> $LogFileName
+./$binName run_upgrade_maintenance >> $LogFileName 2>&1
 echo "Grabbing System Info"
 echo "--------- System Info -------" >> $LogFileName
 ./$binName test_system_info >> $LogFileName 2>&1
