@@ -46,6 +46,9 @@ else
 fi
 
 export NANITOR_TEST_CLI=1
+echo "--------- Agent Version -------" >> $LogFileName
+./$binName -v >> $LogFileName 2>&1
+
 testonce=$(./$binName test_once 2>&1)
 urlPattern="Server URL: (.*)/api"
 [[ $testonce =~ $urlPattern ]]
