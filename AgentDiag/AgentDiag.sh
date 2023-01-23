@@ -46,7 +46,7 @@ else
 fi
 
 export NANITOR_TEST_CLI=1
-echo "--------- Agent Version -------" >> $LogFileName
+echo "--------- Agent Version -------" > $LogFileName
 ./$binName -v >> $LogFileName 2>&1
 
 testonce=$(./$binName test_once 2>&1)
@@ -54,8 +54,8 @@ urlPattern="Server URL: (.*)/api"
 [[ $testonce =~ $urlPattern ]]
 ServerURL=${BASH_REMATCH[1]}
 echo "Testing connection to $ServerURL"
+echo "--------- Test Connection to $ServerURL -------" >> $LogFileName
 ConnTest=$(curl $ServerURL 2>&1)
-echo "--------- Test Connection to $ServerURL -------" > $LogFileName
 echo ${ConnTest:0:500} >> $LogFileName
 echo "Upgrade Maintenance"
 echo "--------- Upgrade Maintenance -------" >> $LogFileName

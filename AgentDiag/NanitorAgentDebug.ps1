@@ -64,7 +64,6 @@ Write-Output "Latest installed agent is $Version, found in $strPath"
 Write-Output "Result will be saved to $OutFileName" 
 Write-Output "Debug information for $org on host $Hostname" *> $OutFileName
 $env:NANITOR_TEST_CLI =1
-Write-Output "Using Agent with version"  *>> $OutFileName
 .\nanitor-agent-bin.exe -v  *>> $OutFileName
 Write-Output "Test Connection"
 $ConnectTest = .\nanitor-agent-bin.exe test_once 2>&1 | out-string
