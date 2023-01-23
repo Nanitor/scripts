@@ -65,6 +65,9 @@ Write-Output "Result will be saved to $OutFileName"
 Write-Output "Debug information for $org on host $Hostname" *> $OutFileName
 $env:NANITOR_TEST_CLI =1
 .\nanitor-agent-bin.exe -v  *>> $OutFileName
+Write-Output "Upgrade Maintenance"
+Write-Output "--------- Upgrade Maintenance -------"  *>> $OutFileName
+.\nanitor-agent-bin.exe run_upgrade_maintenance *>> $OutFileName
 Write-Output "Test Connection"
 $ConnectTest = .\nanitor-agent-bin.exe test_once 2>&1 | out-string
 $lines = $ConnectTest.Split([System.Environment]::NewLine,[System.StringSplitOptions]::RemoveEmptyEntries)
@@ -80,9 +83,6 @@ foreach ($line in $lines)
 Write-Output "Test Checkin"
 Write-Output "--------- Test Checkin -------"  *>> $OutFileName
 .\nanitor-agent-bin.exe test_checkin_system_info  *>> $OutFileName
-Write-Output "Upgrade Maintenance"
-Write-Output "--------- Upgrade Maintenance -------"  *>> $OutFileName
-.\nanitor-agent-bin.exe run_upgrade_maintenance *>> $OutFileName
 Write-Output "System Info"
 Write-Output "--------- System Info -------"  *>> $OutFileName
 .\nanitor-agent-bin.exe test_system_info *>> $OutFileName
