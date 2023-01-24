@@ -9,7 +9,7 @@ NANITOR_DATA_DIR="/Library/Application Support/Nanitor/Nanitor Agent"
 NANITOR_DB_DIR="${NANITOR_DATA_DIR}/nanitor.db"
 
 DOWNLOAD_NAME="nanitor-agent-latest_osx64.pkg"
-DOWNLOAD_URL="https://nanitor.io/agents/temp$/{DOWNLOAD_NAME}"
+DOWNLOAD_URL="https://nanitor.io/agents/{DOWNLOAD_NAME}"
 
 if [ -e "${NANITOR_DB_DIR}" ]; then
     echo "Nanitor agent is already installed, do nothing"
