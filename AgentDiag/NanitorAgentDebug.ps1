@@ -92,6 +92,18 @@ Write-Output "--------- Software Info -------"  *>> $OutFileName
 Write-Output "Patch Info"
 Write-Output "--------- Patch Info -------"  *>> $OutFileName
 .\nanitor-agent-bin.exe test_patch_info *>> $OutFileName
+Write-Output "Test Active Users"
+Write-Output "--------- Test Active Users -------"  *>> $OutFileName
+.\nanitor-agent-bin.exe test_active_users *>> $OutFileName
+Write-Output "List Profiles"
+Write-Output "--------- List Profiles -------"  *>> $OutFileName
+$profiles = Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList*'
+$profiles | Select-Object -Property PSChildName, ProfileImagePath
+Write-Output "WMI Profiles"
+Write-Output "--------- WMI Profiles -------"  *>> $OutFileName
+$profs = Get-WmiObject -ClassName Win32_UserProfile
+$profs | Select-Object -Property SID, LocalPath
+
 Write-Output "Reg Query"
 Write-Output "--------- Reg Query -------"  *>> $OutFileName
 reg query HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate *>> $OutFileName
