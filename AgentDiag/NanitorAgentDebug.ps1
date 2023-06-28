@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory)][String]$org
     )
-    
+
 $cwd = Get-Location
 $Hostname = hostname
 $BasePath = "c:\Program Files\Nanitor\Nanitor Agent\"
@@ -12,7 +12,7 @@ if ($strBaseVersion -match "nanitor-agent-bin.exe version (?<ver>.*)")
   $Version = $matches["ver"]
   $Loc = "base"
 }
-else 
+else
 {
   $Version = "0.0.0.0"
   $Loc = ""
@@ -32,14 +32,14 @@ if ($suffix -eq "")
 {
   $strPath = $BasePath
 }
-else 
+else
 {
   $verBasePath = "$BasePath$suffix\"
   $strDirs = get-childitem -path $verBasePath -attributes Directory `
   | Select-Object Name | Format-Table -HideTableHeaders | Out-String
   $dirs = $strDirs.Split([System.Environment]::NewLine,[System.StringSplitOptions]::RemoveEmptyEntries)
-  
-  foreach ($line in $dirs) 
+
+  foreach ($line in $dirs)
   {
     if ([system.version]$line -gt [system.version]$Version)
     {
@@ -52,7 +52,7 @@ else
   {
     $strPath = $BasePath
   }
-  else 
+  else
   {
     $strPath = "$verBasePath$Version\"
   }
@@ -61,7 +61,7 @@ Set-Location $strPath
 $OutFile = "agentDebug-$org-$Hostname.txt"
 $OutFileName = "$strPath$OutFile"
 Write-Output "Latest installed agent is $Version, found in $strPath"
-Write-Output "Result will be saved to $OutFileName" 
+Write-Output "Result will be saved to $OutFileName"
 Write-Output "Debug information for $org on host $Hostname" *> $OutFileName
 $env:NANITOR_TEST_CLI =1
 .\nanitor-agent-bin.exe -v  *>> $OutFileName
@@ -98,11 +98,11 @@ Write-Output "--------- Test Active Users -------"  *>> $OutFileName
 Write-Output "List Profiles"
 Write-Output "--------- List Profiles -------"  *>> $OutFileName
 $profiles = Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList*'
-$profiles | Select-Object -Property PSChildName, ProfileImagePath
+$profiles | Select-Object -Property PSChildName, ProfileImagePath  *>> $OutFileName
 Write-Output "WMI Profiles"
 Write-Output "--------- WMI Profiles -------"  *>> $OutFileName
 $profs = Get-WmiObject -ClassName Win32_UserProfile
-$profs | Select-Object -Property SID, LocalPath
+$profs | Select-Object -Property SID, LocalPath *>> $OutFileName
 
 Write-Output "Reg Query"
 Write-Output "--------- Reg Query -------"  *>> $OutFileName
