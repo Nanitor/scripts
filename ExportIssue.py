@@ -438,7 +438,7 @@ def main():
                     else:
                         strIssueTitle = "n/a"
                     if "resolved" in dictItem:
-                        bResolved = dictItem["resolved"].lower()
+                        bResolved = dictItem["resolved"]
                     else:
                         bResolved = None
                     if "excluded" in dictItem:
