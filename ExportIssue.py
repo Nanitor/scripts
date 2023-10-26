@@ -445,6 +445,8 @@ def main():
                         bExcluded = dictItem["excluded"]
                     else:
                         bExcluded = None
+                    strIssueTitle = strIssueTitle.replace(strDelim, " ")
+                    strIssueTitle = strIssueTitle.replace("\n", " ")
                     objFileOut.write("{1}{0}{2}{0}{3}{0}{4}{0}{5}\n".format(
                         strDelim, iID, strIssueType, strIssueTitle, bResolved, bExcluded))
 
