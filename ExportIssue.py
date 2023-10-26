@@ -333,7 +333,7 @@ def main():
         else:
             LogEntry("Invalid timeout, setting to defaults of {}".format(iTimeOut))
     else:
-        LogEntry("no timeout, setting to defaults of {}".format(iBatchSize))
+        LogEntry("no timeout, setting to defaults of {}".format(iTimeOut))
 
     if os.getenv("MINQUIET") != "" and os.getenv("MINQUIET") is not None:
         if isInt(os.getenv("MINQUIET")):
@@ -342,7 +342,7 @@ def main():
             LogEntry(
                 "Invalid MinQuiet, setting to defaults of {}".format(iMinQuiet))
     else:
-        LogEntry("no MinQuiet, setting to defaults of {}".format(iBatchSize))
+        LogEntry("no MinQuiet, setting to defaults of {}".format(iMinQuiet))
 
     strHeader = {
         'Content-type': 'application/json',
@@ -379,7 +379,8 @@ def main():
 
     # actual work happens here
 
-    strFileHead = "ID{0}HostName{0}State{0}Type\n".format(strDelim)
+    strFileHead = "ID{0}Issue Type{0}Issue Title{0}Resolved{0}Excluded\n".format(
+        strDelim)
     objFileOut.write(strFileHead)
 
     strAPIFunction = "system_api/issues"
@@ -387,8 +388,11 @@ def main():
     dictParams = {}
     iIndex = 1
     iTotalPages = 10
+    dictParams["issue_type"] = "vulnerability"
+    dictParams["label"] = "Cloud,Datacenter"
+    dictParams["excluded"] = "false"
+    dictParams["per_page"] = iBatchSize
     while iIndex <= iTotalPages:
-        dictParams["per_page"] = iBatchSize
         dictParams["page"] = iIndex
         iIndex += 1
         if isinstance(dictParams, dict) and len(dictParams) > 0:
