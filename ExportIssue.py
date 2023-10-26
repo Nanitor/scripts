@@ -438,17 +438,11 @@ def main():
                     else:
                         strIssueTitle = "n/a"
                     if "resolved" in dictItem:
-                        if dictItem["resolved"].lower() == "true":
-                            bResolved = True
-                        else:
-                            bResolved = False
+                        bResolved = dictItem["resolved"].lower()
                     else:
                         bResolved = None
                     if "excluded" in dictItem:
-                        if dictItem["excluded"].lower() == "true":
-                            bExcluded = True
-                        else:
-                            bExcluded = False
+                        bExcluded = dictItem["excluded"]
                     else:
                         bExcluded = None
                     objFileOut.write("{1}{0}{2}{0}{3}{0}{4}{0}{5}\n".format(
