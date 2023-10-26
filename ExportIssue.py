@@ -311,12 +311,12 @@ def main():
     if os.getenv("OUTDIR") != "" and os.getenv("OUTDIR") is not None:
         strOutDir = os.getenv("OUTDIR")
     else:
-        LogEntry("No Outdir, set to default")
+        LogEntry("No Outdir, set to default of: {}".format(strOutDir))
 
     if os.getenv("OUTFILE") != "" and os.getenv("OUTFILE") is not None:
         strOutfile = os.getenv("OUTFILE")
     else:
-        LogEntry("No Outfile, set to default")
+        LogEntry("No Outfile, set to default of: {}".format(strOutfile))
 
     if os.getenv("BATCHSIZE") != "" and os.getenv("BATCHSIZE") is not None:
         if isInt(os.getenv("BATCHSIZE")):
@@ -382,7 +382,7 @@ def main():
     strFileHead = "ID{0}HostName{0}State{0}Type\n".format(strDelim)
     objFileOut.write(strFileHead)
 
-    strAPIFunction = "system_api/assets"
+    strAPIFunction = "system_api/issues"
     strMethod = "get"
     dictParams = {}
     iIndex = 1
