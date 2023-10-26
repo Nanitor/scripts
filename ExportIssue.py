@@ -425,21 +425,30 @@ def main():
                         iID = dictItem["id"]
                     else:
                         iID = 0
-                    if "hostname" in dictItem:
-                        strHostName = dictItem["hostname"]
+                    if "issue_type" in dictItem:
+                        strIssueType = dictItem["issue_type"]
                     else:
-                        strHostName = "n/a"
-                    if "activity_state" in dictItem:
-                        strState = dictItem["activity_state"]
+                        strIssueType = "n/a"
+                    if "title" in dictItem:
+                        strIssueTitle = dictItem["title"]
                     else:
-                        strState = "n/a"
-                    if "asset_type" in dictItem:
-                        strType = dictItem["asset_type"]
+                        strIssueTitle = "n/a"
+                    if "resolved" in dictItem:
+                        if dictItem["resolved"].lower() == "true":
+                            bResolved = True
+                        else:
+                            bResolved = False
                     else:
-                        strType = "n/a"
-
-                    objFileOut.write("{1}{0}{2}{0}{3}{0}{4}\n".format(
-                        strDelim, iID, strHostName, strState, strType))
+                        bResolved = None
+                    if "excluded" in dictItem:
+                        if dictItem["excluded"].lower() == "true":
+                            bExcluded = True
+                        else:
+                            bExcluded = False
+                    else:
+                        bExcluded = None
+                    objFileOut.write("{1}{0}{2}{0}{3}{0}{4}{0}{5}\n".format(
+                        strDelim, iID, strIssueType, strIssueTitle, bResolved, bExcluded))
 
     # Closing thing out
 
