@@ -49,11 +49,12 @@ tLastCall = 0
 iTotalSleep = 0
 
 # Define few Defaults
-iLogLevel = 5  # How much logging should be done. Level 10 is debug level, 0 is none
-iTimeOut = 45  # Max time in seconds to wait for network response
-iMinQuiet = 2  # Minimum time in seconds between API calls
-iBatchSize = 10  # Default API Batch size
-strDelim = ";"  # Default delim character for CSV file
+iLogLevel = 5     # How much logging should be done. Level 10 is debug level, 0 is none
+iTimeOut = 45     # Max time in seconds to wait for network response
+iMinQuiet = 2     # Minimum time in seconds between API calls
+iBatchSize = 10   # Default API Batch size
+strDelim = ";"    # Default delim character for CSV file
+strDelim2 = ","   # Default delim character for 2nd level, i.e list within a line
 strOutfile = "Issues.csv"
 
 
@@ -242,6 +243,36 @@ def OpenFile(strFileName, strperm):
             return ("File open failure")
 
 
+def ImpactedHosts(strAPIFunction, iID, strHeader, strMethod):
+    lstReturn = []
+    strURL = strBaseURL + strAPIFunction + "/" + str(iID)
+    APIResp = MakeAPICall(strURL, strHeader, strMethod)
+    if APIResp[0]["Success"] == False:
+        LogEntry(APIResp)
+    APIResponse = APIResp[1]
+    if "item" in APIResponse:
+        if "affected_devices" in APIResponse["item"]:
+            if isinstance(APIResponse["item"]["affected_devices"], list):
+                for dictItem in APIResponse["item"]["affected_devices"]:
+                    if "hostname" in dictItem:
+                        strHostname = dictItem["hostname"]
+                    else:
+                        strHostname = "n/a"
+                    if "ip_addresses" in dictItem:
+                        lstIPaddr = dictItem["ip_addresses"]
+                    else:
+                        lstIPaddr = ["n/a"]
+                    strHost = "{} {}".format(strHostname, lstIPaddr)
+                    lstReturn.append(strHost)
+            else:
+                return "no list"
+            return lstReturn
+        else:
+            return "None"
+    else:
+        return "not found"
+
+
 def main():
     global strFileOut
     global objFileOut
@@ -256,6 +287,8 @@ def main():
     global iBatchSize
     global strOutDir
     global strOutfile
+    global strDelim
+    global strDelim2
 
     ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
     strFileOut = None
@@ -295,7 +328,11 @@ def main():
     objFileOut = None
 
     # fetching secrets in doppler
-    strDelim = os.getenv("DELIM")
+    if os.getenv("DELIM") != "" and os.getenv("DELIM") is not None:
+        strDelim = os.getenv("DELIM")
+
+    if os.getenv("DELIM2") != "" and os.getenv("DELIM2") is not None:
+        strDelim2 = os.getenv("DELIM2")
 
     if os.getenv("APIBASEURL") != "" and os.getenv("APIBASEURL") is not None:
         strBaseURL = os.getenv("APIBASEURL")
@@ -430,6 +467,8 @@ def main():
                 for dictItem in APIResponse["items"]:
                     if "id" in dictItem:
                         iID = dictItem["id"]
+                        strHostList = strDelim2.join(
+                            ImpactedHosts(iID, strHeader, strMethod))
                     else:
                         iID = 0
                     if "issue_type" in dictItem:
@@ -453,7 +492,7 @@ def main():
                     objRE = re.search(r"CVE-\d{4}-\d+", strIssueTitle)
                     strCVE = objRE.group()
                     lstRowOut = [iID, strIssueType, strCVE,
-                                 strIssueTitle, bResolved, bExcluded]
+                                 strIssueTitle, bResolved, bExcluded, strHostList]
                     objCSVWrite.writerow(lstRowOut)
 
     # Closing thing out
