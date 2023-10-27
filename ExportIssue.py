@@ -420,7 +420,7 @@ def main():
 
     objCSVWrite = csv.writer(objFileOut, delimiter=strDelim)
     lstFilehead = ["ID", "Issue Type", "CVE",
-                   "Issue Title", "Resolved", "Excluded"]
+                   "Issue Title", "Resolved", "Excluded", "Impacted Hosts"]
     objCSVWrite.writerow(lstFilehead)
 
     strAPIFunction = "system_api/issues"
@@ -467,8 +467,10 @@ def main():
                 for dictItem in APIResponse["items"]:
                     if "id" in dictItem:
                         iID = dictItem["id"]
+                        LogEntry(
+                            "fetching impacted hosts for issue {}".format(iID))
                         strHostList = strDelim2.join(
-                            ImpactedHosts(iID, strHeader, strMethod))
+                            ImpactedHosts(strAPIFunction=strAPIFunction, iID=iID, strHeader=strHeader, strMethod=strMethod))
                     else:
                         iID = 0
                     if "issue_type" in dictItem:
