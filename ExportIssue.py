@@ -16,6 +16,8 @@ import os
 import time
 import platform
 import sys
+import csv
+import re
 import subprocess
 try:
     import requests
@@ -379,9 +381,10 @@ def main():
 
     # actual work happens here
 
-    strFileHead = "ID{0}Issue Type{0}Issue Title{0}Resolved{0}Excluded\n".format(
-        strDelim)
-    objFileOut.write(strFileHead)
+    objCSVWrite = csv.writer(objFileOut, delimiter=strDelim)
+    lstFilehead = ["ID", "Issue Type", "CVE",
+                   "Issue Title", "Resolved", "Excluded"]
+    objCSVWrite.writerow(lstFilehead)
 
     strAPIFunction = "system_api/issues"
     strMethod = "get"
@@ -447,8 +450,11 @@ def main():
                         bExcluded = None
                     strIssueTitle = strIssueTitle.replace(strDelim, " ")
                     strIssueTitle = strIssueTitle.replace("\n", " ")
-                    objFileOut.write("{1}{0}{2}{0}{3}{0}{4}{0}{5}\n".format(
-                        strDelim, iID, strIssueType, strIssueTitle, bResolved, bExcluded))
+                    objRE = re.search(r"CVE-\d{4}-\d+", strIssueTitle)
+                    strCVE = objRE.group()
+                    lstRowOut = [iID, strIssueType, strCVE,
+                                 strIssueTitle, bResolved, bExcluded]
+                    objCSVWrite.writerow(lstRowOut)
 
     # Closing thing out
 
