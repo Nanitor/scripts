@@ -377,12 +377,13 @@ def main():
     if GetConfItem("APIBASEURL") != "":
         strBaseURL = GetConfItem("APIBASEURL")
     else:
-        CleanExit("No Base API provided")
+        strBaseURL = input(
+            "Please provide your instance login URL, such as https://mysite.nanitor.net\n")
 
     if GetConfItem("APIKEY") != "":
         strAPIKey = GetConfItem("APIKEY")
     else:
-        CleanExit("No API key provided")
+        strAPIKey = input("Please provide your API Key: ")
 
     if strBaseURL[-1:] != "/":
         strBaseURL += "/"

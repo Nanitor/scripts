@@ -1,4 +1,4 @@
-BATCHSIZE: '100'
+BATCHSIZE: '200'
 DELIM: ;
 DELIM2: ','
 ISSUETYPE: vulnerability
@@ -6,6 +6,6 @@ LABELS: Cloud,Datacenter
 LOGLEVEL: '10'
 MINQUIET: '2'
 OUTDIR: /tmp/nanitor
-OUTFILE: issues.CSV
+OUTFILE: issues.csv
 PROXY: ''
 TIMEOUT: '120'
