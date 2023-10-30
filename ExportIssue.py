@@ -210,15 +210,20 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
         dictReturn["errcode"] = strErrCode
         dictReturn["errormsg"] = strErrText
         return ({"Success": False}, [dictReturn])
+
+    try:
+        dictResponse = WebRequest.json()
+    except Exception as err:
+        dictReturn["condition"] = "failure converting response to jason"
+        dictReturn["errormsg"] = err
+        dictReturn["errorDetail"] = "Here are the first 199 character of the response: {}".format(
+            WebRequest.text[:199])
+        return ({"Success": False}, [dictReturn])
+
+    if "success" in dictResponse:
+        return ({"Success": dictResponse["success"]}, dictResponse)
     else:
-        try:
-            return ({"Success": True}, WebRequest.json())
-        except Exception as err:
-            dictReturn["condition"] = "failure converting response to jason"
-            dictReturn["errormsg"] = err
-            dictReturn["errorDetail"] = "Here are the first 199 character of the response: {}".format(
-                WebRequest.text[:199])
-            return ({"Success": False}, [dictReturn])
+        return ({"Success": True}, dictResponse)
 
 
 def OpenFile(strFileName, strperm, strNewLine=""):
@@ -470,8 +475,10 @@ def main():
     iIssueCount = 0
     iIndex = 1
     iTotalPages = 10
-    dictParams["issue_type"] = strIssueTypeFilter
-    dictParams["label"] = strLabelFilter
+    if strIssueTypeFilter != "":
+        dictParams["issue_type"] = strIssueTypeFilter
+    if strLabelFilter != "":
+        dictParams["label"] = strLabelFilter
     dictParams["excluded"] = "false"
     dictParams["per_page"] = iBatchSize
     while iIndex <= iTotalPages:
@@ -484,7 +491,7 @@ def main():
             strURL = strBaseURL + strAPIFunction
         APIResp = MakeAPICall(strURL, strHeader, strMethod)
         if APIResp[0]["Success"] == False:
-            LogEntry(APIResp)
+            CleanExit(APIResp)
         APIResponse = APIResp[1]
         objRawOut.write(json.dumps(APIResponse))
         if "page" in APIResponse:
@@ -535,7 +542,10 @@ def main():
                     strIssueTitle = strIssueTitle.replace(strDelim, " ")
                     strIssueTitle = strIssueTitle.replace("\n", " ")
                     objRE = re.search(r"CVE-\d{4}-\d+", strIssueTitle)
-                    strCVE = objRE.group()
+                    if objRE is None:
+                        strCVE = ""
+                    else:
+                        strCVE = objRE.group()
                     lstRowOut = [iID, strIssueType, strCVE,
                                  strIssueTitle, bResolved, bExcluded, strHostList]
                     objCSVWrite.writerow(lstRowOut)
