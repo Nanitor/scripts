@@ -1,10 +1,13 @@
-BATCHSIZE: '200'
-DELIM: ;
-DELIM2: ','
-ISSUETYPE: vulnerability
+APIBASEURL: "https://mysite.nanitor.net/" # Your base Nanitor URL
+APIKEY: "Put this in env variable" # Your API key, best stored in environment variable for security
+# These are all optional
+BATCHSIZE: '200' # Page size, max 200
+DELIM: ; # outputfile field deliminator
+DELIM2: ','  # seperator for any lists embendded in each line
+ISSUETYPE: vulnerability # Possible values, comma seperate: misconfiguration, patch, vulnerability, software, device, user, pii
 LABELS: Cloud,Datacenter
-LOGLEVEL: '10'
-MINQUIET: '2'
+LOGLEVEL: '10' # How detailed of logs should be written. 1 is none, 10 is debug
+MINQUIET: '2' # Minimum number of seconds between each API call
 OUTDIR: /tmp/nanitor
 OUTFILE: issues.csv
 PROXY: ''
