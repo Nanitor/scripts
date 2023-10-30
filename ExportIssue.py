@@ -294,6 +294,16 @@ def LoadConfig(strConfigPath):
         return "failed to load yaml {}. {}".format(strConfigPath, err)
 
 
+def GetConfItem(strItemName):
+    if os.getenv(strItemName) != "" and os.getenv(strItemName) is not None:
+        return os.getenv(strItemName)
+    else:
+        if strItemName in dictConfig:
+            return dictConfig[strItemName]
+        else:
+            return ""
+
+
 def main():
     global strFileOut
     global objFileOut
@@ -310,6 +320,7 @@ def main():
     global strOutfile
     global strDelim
     global strDelim2
+    global dictConfig
 
     ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
     strFileOut = None
@@ -335,6 +346,7 @@ def main():
     strScriptName = os.path.basename(sys.argv[0])
     iLoc = strScriptName.rfind(".")
     strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
+    strConfPath = strBaseDir + strScriptName[:iLoc] + ".yml"
     strVersion = "{0}.{1}.{2}".format(
         sys.version_info[0], sys.version_info[1], sys.version_info[2])
     strScriptHost = platform.node().upper()
@@ -347,60 +359,64 @@ def main():
     print("Logs saved to {}".format(strLogFile))
     objLogOut = open(strLogFile, "w", 1)
     objFileOut = None
+    dictConfig = LoadConfig(strConfPath)
+    if isinstance(dictConfig, str):
+        LogEntry(dictConfig)
+        dictConfig = {}
 
     # fetching configuration variables
-    strLabelFilter = os.getenv("LABELS")
-    strIssueTypeFilter = os.getenv("ISSUETYPE")
+    strLabelFilter = GetConfItem("LABELS")
+    strIssueTypeFilter = GetConfItem("ISSUETYPE")
 
-    if os.getenv("DELIM") != "" and os.getenv("DELIM") is not None:
-        strDelim = os.getenv("DELIM")
+    if GetConfItem("DELIM") != "":
+        strDelim = GetConfItem("DELIM")
 
-    if os.getenv("DELIM2") != "" and os.getenv("DELIM2") is not None:
-        strDelim2 = os.getenv("DELIM2")
+    if GetConfItem("DELIM2") != "":
+        strDelim2 = GetConfItem("DELIM2")
 
-    if os.getenv("APIBASEURL") != "" and os.getenv("APIBASEURL") is not None:
-        strBaseURL = os.getenv("APIBASEURL")
+    if GetConfItem("APIBASEURL") != "":
+        strBaseURL = GetConfItem("APIBASEURL")
     else:
         CleanExit("No Base API provided")
 
-    if os.getenv("APIKEY") != "" and os.getenv("APIKEY") is not None:
-        strAPIKey = os.getenv("APIKEY")
+    if GetConfItem("APIKEY") != "":
+        strAPIKey = GetConfItem("APIKEY")
     else:
         CleanExit("No API key provided")
 
     if strBaseURL[-1:] != "/":
         strBaseURL += "/"
 
-    if os.getenv("OUTDIR") != "" and os.getenv("OUTDIR") is not None:
-        strOutDir = os.getenv("OUTDIR")
+    if GetConfItem("OUTDIR") != "":
+        strOutDir = GetConfItem("OUTDIR")
     else:
         LogEntry("No Outdir, set to default of: {}".format(strOutDir))
 
-    if os.getenv("OUTFILE") != "" and os.getenv("OUTFILE") is not None:
-        strOutfile = os.getenv("OUTFILE")
+    if GetConfItem("OUTFILE") != "":
+        strOutfile = GetConfItem("OUTFILE")
     else:
         LogEntry("No Outfile, set to default of: {}".format(strOutfile))
 
-    if os.getenv("BATCHSIZE") != "" and os.getenv("BATCHSIZE") is not None:
-        if isInt(os.getenv("BATCHSIZE")):
-            iBatchSize = int(os.getenv("BATCHSIZE"))
+    if GetConfItem("BATCHSIZE") != "":
+        if isInt(GetConfItem("BATCHSIZE")):
+            iBatchSize = int(GetConfItem("BATCHSIZE"))
         else:
             LogEntry(
                 "Invalid BatchSize, setting to defaults of {}".format(iBatchSize))
     else:
         LogEntry("No BatchSize, setting to defaults of {}".format(iBatchSize))
 
-    if os.getenv("TIMEOUT") != "" and os.getenv("TIMEOUT") is not None:
-        if isInt(os.getenv("TIMEOUT")):
-            iTimeOut = int(os.getenv("TIMEOUT"))
+    if GetConfItem("TIMEOUT") != "":
+        if isInt(GetConfItem("TIMEOUT")):
+            iTimeOut = int(GetConfItem("TIMEOUT"))
         else:
             LogEntry("Invalid timeout, setting to defaults of {}".format(iTimeOut))
     else:
         LogEntry("no timeout, setting to defaults of {}".format(iTimeOut))
 
-    if os.getenv("MINQUIET") != "" and os.getenv("MINQUIET") is not None:
-        if isInt(os.getenv("MINQUIET")):
-            iMinQuiet = int(os.getenv("MINQUIET"))
+    if GetConfItem("MINQUIET") != "":
+        if isInt(GetConfItem("MINQUIET")):
+            iMinQuiet = int(GetConfItem("MINQUIET"))
         else:
             LogEntry(
                 "Invalid MinQuiet, setting to defaults of {}".format(iMinQuiet))
