@@ -18,6 +18,7 @@ import platform
 import sys
 import csv
 import re
+import yaml
 import subprocess
 try:
     import requests
@@ -220,10 +221,11 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
             return ({"Success": False}, [dictReturn])
 
 
-def OpenFile(strFileName, strperm):
+def OpenFile(strFileName, strperm, strNewLine=""):
     if sys.version_info[0] > 2:
         try:
-            objFileOut = open(strFileName, strperm, encoding='utf8')
+            objFileOut = open(strFileName, strperm,
+                              encoding='utf8', newline=strNewLine)
             return objFileOut
         except PermissionError:
             LogEntry("unable to open output file {} for writing, "
@@ -271,6 +273,25 @@ def ImpactedHosts(strAPIFunction, iID, strHeader, strMethod):
             return "None"
     else:
         return "not found"
+
+
+def LoadConfig(strConfigPath):
+    """
+    function to load in a yaml file
+    Parameter:
+      yaml_path: full path of the file to load
+    Returns:
+      Dictionary with data from the YAML or error message
+    """
+    try:
+        if os.path.isfile(strConfigPath):
+            with open(strConfigPath, "r") as f:
+                device_info = yaml.safe_load(f)
+            return device_info
+        else:
+            return "YAML path {} doesn't exist".format(strConfigPath)
+    except Exception as err:
+        return "failed to load yaml {}. {}".format(strConfigPath, err)
 
 
 def main():
@@ -327,7 +348,10 @@ def main():
     objLogOut = open(strLogFile, "w", 1)
     objFileOut = None
 
-    # fetching secrets in doppler
+    # fetching configuration variables
+    strLabelFilter = os.getenv("LABELS")
+    strIssueTypeFilter = os.getenv("ISSUETYPE")
+
     if os.getenv("DELIM") != "" and os.getenv("DELIM") is not None:
         strDelim = os.getenv("DELIM")
 
@@ -426,10 +450,11 @@ def main():
     strAPIFunction = "system_api/issues"
     strMethod = "get"
     dictParams = {}
+    iIssueCount = 0
     iIndex = 1
     iTotalPages = 10
-    dictParams["issue_type"] = "vulnerability"
-    dictParams["label"] = "Cloud,Datacenter"
+    dictParams["issue_type"] = strIssueTypeFilter
+    dictParams["label"] = strLabelFilter
     dictParams["excluded"] = "false"
     dictParams["per_page"] = iBatchSize
     while iIndex <= iTotalPages:
@@ -460,15 +485,16 @@ def main():
         else:
             LogEntry("No total total number in response")
             iTotalItems = 0
-        LogEntry("On page #{} of {}. There are {} items in total".format(
+        LogEntry("On page #{} of {}.".format(
             iPageNum, iTotalPages, iTotalItems))
         if "items" in APIResponse:
             if isinstance(APIResponse["items"], list):
                 for dictItem in APIResponse["items"]:
+                    iIssueCount += 1
                     if "id" in dictItem:
                         iID = dictItem["id"]
                         LogEntry(
-                            "fetching impacted hosts for issue {}".format(iID))
+                            "fetching impacted hosts for issue {}. Issue {} of {}".format(iID, iIssueCount, iTotalItems))
                         strHostList = strDelim2.join(
                             ImpactedHosts(strAPIFunction=strAPIFunction, iID=iID, strHeader=strHeader, strMethod=strMethod))
                     else:
