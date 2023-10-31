@@ -57,9 +57,10 @@ iBatchSize = 10   # Default API Batch size
 strDelim = ";"    # Default delim character for CSV file
 strDelim2 = ","   # Default delim character for 2nd level, i.e list within a line
 strOutfile = "Issues.csv"
-
+strFormat = "%Y-%m-%d %H:%M:%S"
 
 # sub defs
+
 
 def CleanExit(strCause):
     """
@@ -108,6 +109,18 @@ def LogEntry(strMsg, iMsgLevel, bAbort=False):
 
     if bAbort:
         CleanExit("")
+
+
+def formatUnixDate(iDate):
+    """
+    A simple function to conver UNIX style epoc time to human readable format
+    Parameter:
+      iDate: An integer containing the epoc time
+    Returns:
+      string with that date formated per format directive.
+    """
+    structTime = time.localtime(iDate)
+    return time.strftime(strFormat, structTime)
 
 
 def isInt(CheckValue):
@@ -353,6 +366,7 @@ def main():
     global strDelim
     global strDelim2
     global dictConfig
+    global strFormat
 
     ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
     strFileOut = None
@@ -399,6 +413,9 @@ def main():
     # fetching configuration variables
     strLabelFilter = GetConfItem("LABELS")
     strIssueTypeFilter = GetConfItem("ISSUETYPE")
+
+    if GetConfItem("DATEFORMAT") != "":
+        strFormat = GetConfItem("DATEFORMAT")
 
     if GetConfItem("DELIM") != "":
         strDelim = GetConfItem("DELIM")
@@ -493,7 +510,7 @@ def main():
     # actual work happens here
 
     objCSVWrite = csv.writer(objFileOut, delimiter=strDelim)
-    lstFilehead = ["ID", "Issue Type", "CVE",
+    lstFilehead = ["ID", "Issue Type", "CVE", "Created Date/time", "Opened Date/time",
                    "Issue Title", "Resolved", "Excluded", "Impacted Hosts"]
     objCSVWrite.writerow(lstFilehead)
 
@@ -555,6 +572,15 @@ def main():
                         strIssueType = dictItem["issue_type"]
                     else:
                         strIssueType = "n/a"
+                    if "created_at" in dictItem:
+                        strCreatedTime = formatUnixDate(dictItem["created_at"])
+                    else:
+                        strCreatedTime = "n/a"
+                    if "opened_at" in dictItem:
+                        strOpenedTime = formatUnixDate(dictItem["opened_at"])
+                    else:
+                        strOpenedTime = "n/a"
+
                     if "title" in dictItem:
                         strIssueTitle = dictItem["title"]
                     else:
@@ -574,7 +600,7 @@ def main():
                         strCVE = ""
                     else:
                         strCVE = objRE.group()
-                    lstRowOut = [iID, strIssueType, strCVE,
+                    lstRowOut = [iID, strIssueType, strCVE, strCreatedTime, strOpenedTime,
                                  strIssueTitle, bResolved, bExcluded, strHostList]
                     objCSVWrite.writerow(lstRowOut)
 
