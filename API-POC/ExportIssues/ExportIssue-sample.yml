@@ -1,6 +1,6 @@
 APIBASEURL: https://mysite.nanitor.net/ # Your base Nanitor URL
 APIKEY: Put this in env variable # Your API key, best stored in environment variable for security
-# These are all optional
+# These are all optional, defaults will be used in their place if absent.
 BATCHSIZE: 200 # Page size, max 200
 DELIM: ; # outputfile field deliminator
 DELIM2: ','  # seperator for any lists embendded in each line
