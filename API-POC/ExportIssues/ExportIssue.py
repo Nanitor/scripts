@@ -85,20 +85,27 @@ def CleanExit(strCause):
     sys.exit(9)
 
 
-def LogEntry(strMsg, bAbort=False):
+def LogEntry(strMsg, iMsgLevel, bAbort=False):
     """
     This handles writing all event logs into the appropriate log facilities
     This could be a simple text log file, a database connection, etc.
     Needs to be customized as needed
     Parameters:
       Message: Simple string with the event to be logged
+      iMsgLevel: How detailed is this message, debug level or general. Will be matched against Loglevel
       Abort: Optional, defaults to false. A boolean to indicate if CleanExit should be called.
     Returns:
       Nothing
     """
-    strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
-    objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
-    print(strMsg)
+    if iLogLevel > iMsgLevel:
+        strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
+        objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
+        print(strMsg)
+    else:
+        if bAbort:
+            strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
+            objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
+
     if bAbort:
         CleanExit("")
 
@@ -145,16 +152,14 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
 
     fTemp = time.time()
     fDelta = fTemp - tLastCall
-    if iLogLevel > 6:
-        LogEntry("It's been {} seconds since last API call".format(fDelta))
+    LogEntry("It's been {} seconds since last API call".format(fDelta), 6)
     if fDelta > iMinQuiet:
         tLastCall = time.time()
     else:
         iDelta = int(fDelta)
         iAddWait = iMinQuiet - iDelta
-        if iLogLevel > 6:
-            LogEntry("It has been less than {} seconds since last API call, "
-                     "waiting {} seconds".format(iMinQuiet, iAddWait))
+        LogEntry("It has been less than {} seconds since last API call, "
+                 "waiting {} seconds".format(iMinQuiet, iAddWait), 6)
         iTotalSleep += iAddWait
         time.sleep(iAddWait)
 
@@ -162,47 +167,40 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
     strErrText = ""
     dictReturn = {}
 
-    if iLogLevel > 5:
-        LogEntry("Doing a {} to URL: {}".format(strMethod, strURL))
+    LogEntry("Doing a {} to URL: {}".format(strMethod, strURL), 5)
     try:
         if strMethod.lower() == "get":
             if strUser != "":
-                if iLogLevel > 6:
-                    LogEntry(
-                        "I have none blank credentials so I'm doing basic auth")
+                LogEntry(
+                    "I have none blank credentials so I'm doing basic auth", 6)
                 WebRequest = requests.get(strURL, timeout=iTimeOut, headers=strHeader,
                                           auth=(strUser, strPWD), verify=False)
             else:
-                if iLogLevel > 6:
-                    LogEntry("credentials are blank, proceeding without auth")
+                LogEntry("credentials are blank, proceeding without auth", 6)
                 WebRequest = requests.get(
                     strURL, timeout=iTimeOut, headers=strHeader, verify=False)
-            if iLogLevel > 6:
-                LogEntry("get executed")
+                LogEntry("get executed", 6)
         if strMethod.lower() == "post":
             if dictPayload != "":
-                if iLogLevel > 6:
-                    LogEntry("with payload of: {}".format(dictPayload))
+                LogEntry("with payload of: {}".format(dictPayload), 6)
                 WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
                                            headers=strHeader, auth=(strUser, strPWD), verify=False)
             else:
                 WebRequest = requests.post(
                     strURL, headers=strHeader, verify=False)
-            if iLogLevel > 6:
-                LogEntry("post executed")
+            LogEntry("post executed", 6)
     except Exception as err:
         dictReturn["condition"] = "Issue with API call"
         dictReturn["errormsg"] = err
         return ({"Success": False}, [dictReturn])
 
     if isinstance(WebRequest, requests.models.Response) == False:
-        LogEntry("response is unknown type")
+        LogEntry("response is unknown type", 2)
         strErrCode = "ResponseErr"
         strErrText = "response is unknown type"
 
-    if iLogLevel > 5:
-        LogEntry("call resulted in status code {}".format(
-            WebRequest.status_code))
+    LogEntry("call resulted in status code {}".format(
+        WebRequest.status_code), 5)
     iStatusCode = int(WebRequest.status_code)
 
     if strErrCode != "":
@@ -227,6 +225,16 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
 
 
 def OpenFile(strFileName, strperm, strNewLine=""):
+    """
+    Handles creating a file handle in a safe manner with error handling and such.
+    Parameters:
+      strFileName: What is the full path of the file to open
+      strperm: Should the be open for read, write, append or binary operations
+      strNewLine: Any newline character, defaults to blank.
+    Returns:
+      object handle to the opened file, or an error string
+    """
+
     if sys.version_info[0] > 2:
         try:
             objFileOut = open(strFileName, strperm,
@@ -234,11 +242,11 @@ def OpenFile(strFileName, strperm, strNewLine=""):
             return objFileOut
         except PermissionError:
             LogEntry("unable to open output file {} for writing, "
-                     "permission denied.".format(strFileName))
+                     "permission denied.".format(strFileName), 1, True)
             return ("Permission denied")
         except FileNotFoundError:
             LogEntry("unable to open output file {} for writing, "
-                     "Issue with the path".format(strFileName))
+                     "Issue with the path".format(strFileName), 1, True)
             return ("file not found")
     else:
         try:
@@ -251,11 +259,22 @@ def OpenFile(strFileName, strperm, strNewLine=""):
 
 
 def ImpactedHosts(strAPIFunction, iID, strHeader, strMethod):
+    """
+    Handles fetching impacted hosts for a specific issue number
+    Parameters:
+      strAPIFunction: what is the function to query for impacted hosts
+      iID: What is the issue ID
+      strHeader: API Header with things such as auth
+      strMethod: Is the API call a get, post, etc.
+    Returns:
+      list object of all hosts impacted along with their IPs, or an error string
+    """
+
     lstReturn = []
     strURL = strBaseURL + strAPIFunction + "/" + str(iID)
     APIResp = MakeAPICall(strURL, strHeader, strMethod)
     if APIResp[0]["Success"] == False:
-        LogEntry(APIResp)
+        LogEntry(APIResp, 1, True)
     APIResponse = APIResp[1]
     if "item" in APIResponse:
         if "affected_devices" in APIResponse["item"]:
@@ -282,7 +301,7 @@ def ImpactedHosts(strAPIFunction, iID, strHeader, strMethod):
 
 def LoadConfig(strConfigPath):
     """
-    function to load in a yaml file
+    function to load in a yaml file with configuration items
     Parameter:
       yaml_path: full path of the file to load
     Returns:
@@ -300,6 +319,14 @@ def LoadConfig(strConfigPath):
 
 
 def GetConfItem(strItemName):
+    """
+    Fetches a particular configuration item, either from environment variable
+    or configuration dictionary loaded by LoadConfig.
+    Parameters:
+      strItemName: Name of the configuration item. This should match the env variable name
+    Returns:
+      string value of the variable
+    """
     if os.getenv(strItemName) != "" and os.getenv(strItemName) is not None:
         return os.getenv(strItemName)
     else:
@@ -366,7 +393,7 @@ def main():
     objFileOut = None
     dictConfig = LoadConfig(strConfPath)
     if isinstance(dictConfig, str):
-        LogEntry(dictConfig)
+        LogEntry(dictConfig, 5)
         dictConfig = {}
 
     # fetching configuration variables
@@ -396,38 +423,39 @@ def main():
     if GetConfItem("OUTDIR") != "":
         strOutDir = GetConfItem("OUTDIR")
     else:
-        LogEntry("No Outdir, set to default of: {}".format(strOutDir))
+        LogEntry("No Outdir, set to default of: {}".format(strOutDir), 4)
 
     if GetConfItem("OUTFILE") != "":
         strOutfile = GetConfItem("OUTFILE")
     else:
-        LogEntry("No Outfile, set to default of: {}".format(strOutfile))
+        LogEntry("No Outfile, set to default of: {}".format(strOutfile), 4)
 
     if GetConfItem("BATCHSIZE") != "":
         if isInt(GetConfItem("BATCHSIZE")):
             iBatchSize = int(GetConfItem("BATCHSIZE"))
         else:
             LogEntry(
-                "Invalid BatchSize, setting to defaults of {}".format(iBatchSize))
+                "Invalid BatchSize, setting to defaults of {}".format(iBatchSize), 4)
     else:
-        LogEntry("No BatchSize, setting to defaults of {}".format(iBatchSize))
+        LogEntry("No BatchSize, setting to defaults of {}".format(iBatchSize), 4)
 
     if GetConfItem("TIMEOUT") != "":
         if isInt(GetConfItem("TIMEOUT")):
             iTimeOut = int(GetConfItem("TIMEOUT"))
         else:
-            LogEntry("Invalid timeout, setting to defaults of {}".format(iTimeOut))
+            LogEntry(
+                "Invalid timeout, setting to defaults of {}".format(iTimeOut), 4)
     else:
-        LogEntry("no timeout, setting to defaults of {}".format(iTimeOut))
+        LogEntry("no timeout, setting to defaults of {}".format(iTimeOut), 4)
 
     if GetConfItem("MINQUIET") != "":
         if isInt(GetConfItem("MINQUIET")):
             iMinQuiet = int(GetConfItem("MINQUIET"))
         else:
             LogEntry(
-                "Invalid MinQuiet, setting to defaults of {}".format(iMinQuiet))
+                "Invalid MinQuiet, setting to defaults of {}".format(iMinQuiet), 4)
     else:
-        LogEntry("no MinQuiet, setting to defaults of {}".format(iMinQuiet))
+        LogEntry("no MinQuiet, setting to defaults of {}".format(iMinQuiet), 4)
 
     strHeader = {
         'Content-type': 'application/json',
@@ -441,11 +469,11 @@ def main():
 
     if not os.path.exists(strOutDir):
         os.makedirs(strOutDir)
-        print(
-            "\nPath '{0}' for ouput files didn't exists, so I create it!\n".format(strOutDir))
+        LogEntry(
+            "\nPath '{0}' for ouput files didn't exists, so I create it!\n".format(strOutDir), 5)
 
     strFileOut = strOutDir + strOutfile
-    LogEntry("Output will be written to {}".format(strFileOut))
+    LogEntry("Output will be written to {}".format(strFileOut), 5)
 
     tmpResponse = OpenFile(strFileOut, "w")
     if isinstance(tmpResponse, str):
@@ -454,7 +482,7 @@ def main():
         objFileOut = tmpResponse
 
     strRawOut = strOutDir + "RawOut.json"
-    LogEntry("Raw Output will be written to {}".format(strRawOut))
+    LogEntry("Raw Output will be written to {}".format(strRawOut), 5)
 
     tmpResponse = OpenFile(strRawOut, "w")
     if isinstance(tmpResponse, str):
@@ -497,20 +525,20 @@ def main():
         if "page" in APIResponse:
             iPageNum = APIResponse["page"]
         else:
-            LogEntry("No page number in response")
+            LogEntry("No page number in response", 5)
             iPageNum = 0
         if "pages" in APIResponse:
             iTotalPages = APIResponse["pages"]
         else:
-            LogEntry("No total pages number in response")
+            LogEntry("No total pages number in response", 5)
             iTotalPages = 0
         if "total" in APIResponse:
             iTotalItems = APIResponse["total"]
         else:
-            LogEntry("No total total number in response")
+            LogEntry("No total total number in response", 5)
             iTotalItems = 0
         LogEntry("On page #{} of {}.".format(
-            iPageNum, iTotalPages, iTotalItems))
+            iPageNum, iTotalPages, iTotalItems), 3)
         if "items" in APIResponse:
             if isinstance(APIResponse["items"], list):
                 for dictItem in APIResponse["items"]:
@@ -518,7 +546,7 @@ def main():
                     if "id" in dictItem:
                         iID = dictItem["id"]
                         LogEntry(
-                            "fetching impacted hosts for issue {}. Issue {} of {}".format(iID, iIssueCount, iTotalItems))
+                            "fetching impacted hosts for issue {}. Issue {} of {}".format(iID, iIssueCount, iTotalItems), 4)
                         strHostList = strDelim2.join(
                             ImpactedHosts(strAPIFunction=strAPIFunction, iID=iID, strHeader=strHeader, strMethod=strMethod))
                     else:
@@ -554,11 +582,11 @@ def main():
 
     if objFileOut is not None:
         objFileOut.close()
-        print("objFileOut closed")
+        LogEntry("objFileOut closed", 3)
     else:
-        print("objFileOut is not defined yet")
+        LogEntry("objFileOut is not defined yet", 3)
 
-    LogEntry("Done! Output saved to {}".format(strFileOut))
+    LogEntry("Done! Output saved to {}".format(strFileOut), 2)
     objLogOut.close()
 
 
