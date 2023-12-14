@@ -311,21 +311,29 @@ def main():
     else:
         LogEntry("No LOGLEVEL, setting to defaults of {}".format(iLogLevel), 3)
 
-    if os.getenv("DELIM") != "" and os.getenv("DELIM") is not None:
-        strDelim = os.getenv("DELIM")
+    strTemp = os.getenv("DELIM")
+    strTemp = str(strTemp or '')
+    if len(strTemp) == 1:
+        strDelim = strTemp
+        LogEntry("DELIM '{}' found in enviroment".format(strDelim), 6)
     else:
-        LogEntry("no DELIM, setting to defaults of {}".format(strDelim), 3)
+        LogEntry(
+            "'{}' is not a valid DELIM, setting to defaults of '{}'".format(strTemp, strDelim), 3)
 
-    if os.getenv("DELIM2") != "" and os.getenv("DELIM2") is not None:
-        strDelim2 = os.getenv("DELIM2")
+    strTemp = os.getenv("DELIM2")
+    strTemp = str(strTemp or '')
+    if len(strTemp) == 1:
+        strDelim2 = strTemp
+        LogEntry("DELIM2 '{}' found in enviroment".format(strDelim2), 6)
     else:
-        LogEntry("no DELIM2, setting to defaults of {}".format(strDelim2), 3)
+        LogEntry(
+            "'{}' is not a valid DELIM2, setting to defaults of '{}'".format(strTemp, strDelim2), 3)
 
     if os.getenv("APIBASEURL") != "" and os.getenv("APIBASEURL") is not None:
         strBaseURL = os.getenv("APIBASEURL")
     else:
         CleanExit("No Base URL provided")
-
+    strBaseURL = strBaseURL.strip()
     if os.getenv("APIKEY") != "" and os.getenv("APIKEY") is not None:
         strAPIKey = os.getenv("APIKEY")
     else:
@@ -394,6 +402,10 @@ def main():
         print("No filename provided unable to continue")
         sys.exit()
 
+    strCSVName = strCSVName.replace("\\", "/")
+    if "/" not in strCSVName:
+        strCSVName = strBaseDir + strCSVName
+
     if os.path.isfile(strCSVName):
         print("OK found {}".format(strCSVName))
     else:
@@ -442,6 +454,7 @@ def main():
         dictParams["per_page"] = iBatchSize
         dictParams["page"] = iIndex
         dictParams["hostname_starts_with"] = strHostName
+        dictParams["archived"] = False
         if isinstance(dictParams, dict) and len(dictParams) > 0:
             strListScans = urlparse.urlencode(dictParams)
             strURL = strBaseURL + strAPIFunction + "?" + strListScans
@@ -462,12 +475,15 @@ def main():
                         LogEntry("Can't find the device ID for {}".format(
                             strHostName), 3)
             else:
+                if APIResponse["items"] is None:
+                    LogEntry("Nothing Found", 3)
+                    continue
                 LogEntry("items collection is not a list, it is a {}".format(
                     type(APIResponse["items"])), 3)
         else:
             LogEntry("No items collection", 3)
 
-        LogEntry("Now applying labels to the appropriate hosts", 4)
+        LogEntry("And applying labels to this hosts", 4)
         dictPayload = {}
         dictPayload["assets"] = []
         dictAsset = {}
@@ -475,7 +491,7 @@ def main():
         dictAsset["label_action"] = "add"
         dictAsset["labels"] = lstLabels
         dictPayload["assets"].append(dictAsset)
-        strAPIFunction = "system_api/assets"
+        strAPIFunction = "system_api/assets/update"
         strMethod = "post"
         strURL = strBaseURL + strAPIFunction
         APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictPayload)
