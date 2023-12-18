@@ -444,8 +444,8 @@ def main():
             LogEntry("Skipping invalid line {}".format(lstLineParts), 8)
             continue
         strTemp = lstLineParts[0].lower()
-        # if strTemp[:1] == '\ufeff':
-        #    strTemp = strTemp[1:]
+        if strTemp[:1] == '\ufeff':
+            strTemp = strTemp[1:]
 
         if strTemp == "hostname":
             LogEntry("Skipping header", 6)
