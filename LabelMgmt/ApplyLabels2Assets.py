@@ -95,6 +95,7 @@ def LogEntry(strMsg, iMsgLevel, bAbort=False):
     Returns:
       Nothing
     """
+
     if iLogLevel > iMsgLevel:
         strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
         objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
@@ -229,6 +230,9 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     LogEntry("call resulted in status code {}".format(
         WebRequest.status_code), 5)
     iStatusCode = int(WebRequest.status_code)
+    if iStatusCode != 200:
+        strErrCode = WebRequest.status_code
+        strErrText = WebRequest.text
 
     if strErrCode != "":
         dictReturn["condition"] = "problem with your request"
@@ -298,7 +302,7 @@ def main():
     dtNow = time.asctime()
     print("The time now is {}".format(dtNow))
     print("Logs saved to {}".format(strLogFile))
-    objLogOut = open(strLogFile, "w", 1)
+    objLogOut = open(strLogFile, "w", 1, encoding='utf8')
 
     # fetching secrets and configuration items from environment
     if os.getenv("LOGLEVEL") != "" and os.getenv("LOGLEVEL") is not None:
@@ -440,8 +444,8 @@ def main():
             LogEntry("Skipping invalid line {}".format(lstLineParts), 8)
             continue
         strTemp = lstLineParts[0].lower()
-        if strTemp[:1] == '\ufeff':
-            strTemp = strTemp[1:]
+        # if strTemp[:1] == '\ufeff':
+        #    strTemp = strTemp[1:]
 
         if strTemp == "hostname":
             LogEntry("Skipping header", 6)
@@ -478,6 +482,7 @@ def main():
                     else:
                         LogEntry("Can't find the device ID for {}".format(
                             strHostName), 3)
+                        continue
             else:
                 if APIResponse["items"] is None:
                     LogEntry("Nothing Found", 3)
@@ -486,6 +491,7 @@ def main():
                     type(APIResponse["items"])), 3)
         else:
             LogEntry("No items collection", 3)
+            continue
 
         LogEntry("And applying labels to this hosts", 4)
         dictPayload = {}
