@@ -1,6 +1,6 @@
-# Author : Siggi Bjarnason
-# Copyright (c) Nanitor.com
-# Assumes Windows cmd.exe
+rem Author : Siggi Bjarnason
+rem Copyright (c) Nanitor.com
+rem Assumes Windows cmd.exe
 
 set DELIM=;
 set DELIM2=,

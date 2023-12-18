@@ -439,10 +439,14 @@ def main():
         if len(lstLineParts) < 2:
             LogEntry("Skipping invalid line {}".format(lstLineParts), 8)
             continue
-        if lstLineParts[0].lower() == "hostname":
+        strTemp = lstLineParts[0].lower()
+        if strTemp[:1] == '\ufeff':
+            strTemp = strTemp[1:]
+
+        if strTemp == "hostname":
             LogEntry("Skipping header", 6)
             continue
-        strHostName = lstLineParts[0]
+        strHostName = strTemp
         LogEntry("working on host {}".format(strHostName), 8)
 
         lstLabels = lstLineParts[1].split(strDelim2)
