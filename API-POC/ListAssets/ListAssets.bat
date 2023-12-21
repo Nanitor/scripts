@@ -1,0 +1,11 @@
+set APIBASEURL=https://mysite.nanitor.net/
+set APIKEY=SuperDuperSecretKey
+set BATCHSIZE=200
+set DELIM=,
+set LOGLEVEL=10
+set MINQUIET=1
+set OUTDIR=c:\tmp\nanitor
+set OUTFILE=Assets.CSV
+set INFILE=c:\temp\infile.txt
+set TIMEOUT=120
+python ListAssets.py
