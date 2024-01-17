@@ -15,6 +15,7 @@ import os
 import time
 import platform
 import sys
+import csv
 import subprocess
 try:
   import requests
@@ -201,10 +202,10 @@ def MakeAPICall(strURL, strHeader, strMethod, dictPayload="", strUser="", strPWD
     try:
       return ({"Success":True}, WebRequest.json())
     except Exception as err:
-        dictReturn["condition"] = "failure converting response to jason"
-        dictReturn["errormsg"] = err
-        dictReturn["errorDetail"] = "Here are the first 199 character of the response: {}".format(WebRequest.text[:199])
-        return ({"Success":False}, [dictReturn])
+      dictReturn["condition"] = "failure converting response to jason"
+      dictReturn["errormsg"] = err
+      dictReturn["errorDetail"] = "Here are the first 199 character of the response: {}".format(WebRequest.text[:199])
+      return ({"Success":False}, [dictReturn])
 
 def OpenFile(strFileName,strperm):
   if sys.version_info[0] > 2 :
@@ -304,6 +305,13 @@ def main():
   else:
     LogEntry("No Outfile, set to default")
 
+  if os.getenv("INFILE") != "" and os.getenv("INFILE") is not None:
+    strInFile = os.getenv("INFILE")
+    LogEntry("Found infile as {}, only fetching those hosts".format(strInFile))
+  else:
+    LogEntry("No INFILE, dumping everything")
+    strInFile = ""
+
   if os.getenv("BATCHSIZE") != "" and os.getenv("BATCHSIZE") is not None:
     if isInt(os.getenv("BATCHSIZE")):
       iBatchSize = int(os.getenv("BATCHSIZE"))
@@ -329,10 +337,10 @@ def main():
     LogEntry("no MinQuiet, setting to defaults of {}".format(iBatchSize))
 
   strHeader = {
-      'Content-type': 'application/json',
-      'Accept': 'application/json',
-      'authorization': 'Bearer ' + strAPIKey
-      }
+    'Content-type': 'application/json',
+    'Accept': 'application/json',
+    'authorization': 'Bearer ' + strAPIKey
+    }
 
   strOutDir = strOutDir.replace("\\", "/")
   if strOutDir[-1:] != "/":
@@ -340,8 +348,7 @@ def main():
 
   if not os.path.exists(strOutDir):
     os.makedirs(strOutDir)
-    print(
-        "\nPath '{0}' for ouput files didn't exists, so I create it!\n".format(strOutDir))
+    print("\nPath '{0}' for ouput files didn't exists, so I create it!\n".format(strOutDir))
 
   strFileOut = strOutDir + strOutfile
   LogEntry("Output will be written to {}".format(strFileOut))
@@ -361,68 +368,133 @@ def main():
   else:
     objRawOut = tmpResponse
 
+  lstInputs = []
+  strInFile = strInFile.replace("\\", "/")
+  if os.path.isfile(strInFile):
+    print("OK found {}".format(strInFile))
+    bFileOK = True
+  else:
+    print("Can't find CSV file {}".format(strInFile))
+    bFileOK = False
+
+  if bFileOK:
+    tmpResponse = OpenFile(strInFile,"r")
+    if isinstance(tmpResponse,str):
+      CleanExit(tmpResponse)
+    else:
+      objCSVIn = tmpResponse
+
+    csvReader = csv.reader(objCSVIn, delimiter=strDelim)
+    for lstRow in csvReader:
+      lstInputs.append(lstRow)
+    objCSVIn.close()
+
   # actual work happens here
 
-  strFileHead = "ID{0}HostName{0}State{0}Type\n".format(strDelim)
+  strFileHead = "ID{0}HostName{0}State{0}Type{0}Platform{0}OS{0}Agent Version{0}Labels\n".format(strDelim)
   objFileOut.write(strFileHead)
 
   strAPIFunction = "system_api/assets"
   strMethod = "get"
-  dictParams = {}
-  iIndex = 1
-  iTotalPages = 10
-  while iIndex <= iTotalPages:
-    dictParams["per_page"] = iBatchSize
-    dictParams["page"] = iIndex
-    iIndex += 1
-    if isinstance(dictParams,dict) and len(dictParams) > 0:
-      strListScans = urlparse.urlencode(dictParams)
-      strURL = strBaseURL + strAPIFunction +"?" + strListScans
-    else:
-      strURL = strBaseURL + strAPIFunction
-    APIResp = MakeAPICall(strURL,strHeader,strMethod)
-    if APIResp[0]["Success"] == False:
-      LogEntry (APIResp)
-    APIResponse = APIResp[1]
-    objRawOut.write(json.dumps(APIResponse))
-    if "page" in APIResponse:
-      iPageNum = APIResponse["page"]
-    else:
-      LogEntry("No page number in response")
-      iPageNum = 0
-    if "pages" in APIResponse:
-      iTotalPages = APIResponse["pages"]
-    else:
-      LogEntry("No total pages number in response")
-      iTotalPages = 0
-    if "total" in APIResponse:
-      iTotalItems = APIResponse["total"]
-    else:
-      LogEntry("No total total number in response")
-      iTotalItems = 0
-    LogEntry("On page #{} of {}. There are {} items in total".format(iPageNum,iTotalPages,iTotalItems))
-    if "items" in APIResponse:
-      if isinstance(APIResponse["items"],list):
-        for dictItem in APIResponse["items"]:
-          if "id" in dictItem:
-            iID = dictItem["id"]
-          else:
-            iID = 0
-          if "hostname" in dictItem:
-            strHostName = dictItem["hostname"]
-          else:
-            strHostName = "n/a"
-          if "activity_state" in dictItem:
-            strState = dictItem["activity_state"]
-          else:
-            strState = "n/a"
-          if "asset_type" in dictItem:
-            strType = dictItem["asset_type"]
-          else:
-            strType = "n/a"
+  iInSize = len(lstInputs)
+  if iInSize > 0:
+    LogEntry("Now looping through the input file and finding the ID of each host."
+              " There are {} entries.".format(iInSize))
+    LogEntry(" * Deliminator is '{}' *".format(strDelim))
+  else:
+    lstInputs = [[""]]
 
-          objFileOut.write("{1}{0}{2}{0}{3}{0}{4}\n".format(
-                strDelim, iID, strHostName, strState, strType))
+  iCurr = 1
+  for lstLineParts in lstInputs:
+    LogEntry("Processing line {} of {}".format(iCurr, iInSize))
+    iCurr += 1
+    if len(lstLineParts) < 1:
+      LogEntry("Skipping invalid line {}".format(lstLineParts))
+      continue
+    strTemp = lstLineParts[0].lower()
+    if strTemp[:1] == '\ufeff':
+      strTemp = strTemp[1:]
+
+    if strTemp == "hostname":
+      LogEntry("Skipping header", 6)
+      continue
+    strHostName = strTemp
+    LogEntry("working on host {}".format(strHostName))
+
+    dictParams = {}
+    if strHostName != "":
+      dictParams["hostname_starts_with"] = strHostName
+    iIndex = 1
+    iTotalPages = 10
+    while iIndex <= iTotalPages:
+      dictParams["per_page"] = iBatchSize
+      dictParams["page"] = iIndex
+      dictParams["archived"] = False
+      iIndex += 1
+      if isinstance(dictParams,dict) and len(dictParams) > 0:
+        strListScans = urlparse.urlencode(dictParams)
+        strURL = strBaseURL + strAPIFunction +"?" + strListScans
+      else:
+        strURL = strBaseURL + strAPIFunction
+      APIResp = MakeAPICall(strURL,strHeader,strMethod)
+      if APIResp[0]["Success"] == False:
+        LogEntry (APIResp,True)
+      APIResponse = APIResp[1]
+      objRawOut.write(json.dumps(APIResponse))
+      if "page" in APIResponse:
+        iPageNum = APIResponse["page"]
+      else:
+        LogEntry("No page number in response")
+        iPageNum = 0
+      if "pages" in APIResponse:
+        iTotalPages = APIResponse["pages"]
+      else:
+        LogEntry("No total pages number in response")
+        iTotalPages = 0
+      if "total" in APIResponse:
+        iTotalItems = APIResponse["total"]
+      else:
+        LogEntry("No total total number in response")
+        iTotalItems = 0
+      LogEntry("On page #{} of {}. There are {} items in total".format(iPageNum,iTotalPages,iTotalItems))
+      if "items" in APIResponse:
+        if isinstance(APIResponse["items"],list):
+          for dictItem in APIResponse["items"]:
+            if "id" in dictItem:
+              iID = dictItem["id"]
+            else:
+              iID = 0
+            if "hostname" in dictItem:
+              strHostName = dictItem["hostname"]
+            else:
+              strHostName = "n/a"
+            if "activity_state" in dictItem:
+              strState = dictItem["activity_state"]
+            else:
+              strState = "n/a"
+            if "asset_type" in dictItem:
+              strType = dictItem["asset_type"]
+            else:
+              strType = "n/a"
+            if "platform" in dictItem:
+              strPlatform = dictItem["platform"]
+            else:
+              strPlatform = "n/a"
+            if "os" in dictItem:
+              strOS = dictItem["os"]
+            else:
+              strOS = "n/a"
+            if "agent_version" in dictItem:
+              strAgentVersion = dictItem["agent_version"]
+            else:
+              strAgentVersion = "n/a"
+            if "device_labels" in dictItem:
+              lstLabels = dictItem["device_labels"]
+            else:
+              lstLabels = "n/a"
+
+            objFileOut.write("{1}{0}{2}{0}{3}{0}{4}{0}{5}{0}{6}{0}{7}{0}{8}\n".format(
+                  strDelim, iID, strHostName, strState, strType, strPlatform, strOS, strAgentVersion, lstLabels))
 
 
   # Closing thing out
